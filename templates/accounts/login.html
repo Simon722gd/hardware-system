@@ -1,0 +1,97 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Hardware System Login{% endblock %}
+
+{% block auth_content %}
+<style>
+    body {
+        background: url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+        background-size: cover;
+    }
+
+    .login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: -1;
+    }
+
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 40px;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .login-title {
+        color: #22D3EE;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2rem;
+    }
+</style>
+
+<div class="login-overlay"></div>
+<div class="login-container">
+    <div class="login-card">
+        <h2 class="login-title"><i class="bi bi-cpu"></i> Hardware System Login</h2>
+
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="mb-4">
+                <label for="id_username" class="form-label text-white fw-bold">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent text-white border-white border-end-0"><i
+                            class="bi bi-person"></i></span>
+                    <input type="text" name="username" id="id_username"
+                        class="form-control bg-transparent text-white border-white border-start-0"
+                        placeholder="Enter username" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="id_password" class="form-label text-white fw-bold">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent text-white border-white border-end-0"><i
+                            class="bi bi-lock"></i></span>
+                    <input type="password" name="password" id="id_password"
+                        class="form-control bg-transparent text-white border-white border-start-0"
+                        placeholder="Enter password" required>
+                </div>
+            </div>
+
+            <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-primary py-2 fw-bold shadow">Login to System</button>
+            </div>
+
+            <div class="text-center">
+                <a href="{% url 'accounts:forgot_password_step1' %}"
+                    class="text-light opacity-75 text-decoration-none small">Forgot Password?</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Low Stock Products{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="text-white fw-bold mb-1">Low Stock Products</h2>
+        <p class="text-light opacity-75">Products with quantity less than 10 units</p>
+    </div>
+    <span class="badge bg-danger fs-6">{{ total_low_stock }} items</span>
+</div>
+
+<div class="glass-card">
+    {% if products %}
+    <div class="table-responsive">
+        <table class="table text-white table-borderless glass-table">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Supplier</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr {% if product.quantity == 0 %}style="background-color: rgba(220, 38, 38, 0.1);"{% elif product.quantity < 5 %}style="background-color: rgba(245, 158, 11, 0.1);"{% endif %}>
+                    <td>
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                        {% else %}
+                            <div style="width: 50px; height: 50px; background: #ccc; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ product.name }}</strong>
+                        {% if product.quantity == 0 %}
+                            <br><span class="badge bg-danger">Out of Stock</span>
+                        {% elif product.quantity < 5 %}
+                            <br><span class="badge bg-warning text-dark">Critical</span>
+                        {% else %}
+                            <br><span class="badge bg-info">Low</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ product.category.name }}</td>
+                    <td>
+                        <strong>{{ product.quantity }} units</strong>
+                    </td>
+                    <td>KES {{ product.price|floatformat:0|intcomma }}</td>
+                    <td>{{ product.supplier.name|default:"-" }}</td>
+                    <td>
+                        <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-outline-warning me-2">Restock</a>
+                        <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-outline-light">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+        <h4 class="text-white mt-3">All Products in Stock</h4>
+        <p class="text-light opacity-75">Great! No products are running low on stock.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .glass-table tbody tr {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .glass-table tbody tr:hover {
+        background-color: rgba(94, 165, 255, 0.15) !important;
+    }
+</style>
+{% endblock %}

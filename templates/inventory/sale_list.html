@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Sales{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-white fw-bold">Sales</h2>
+    <a href="{% url 'inventory:sale_create' %}" class="btn btn-primary">Add Sale</a>
+</div>
+
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table text-white table-borderless glass-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Customer</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Receipt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td>{{ sale.product.name }}</td>
+                    <td>{{ sale.quantity }}</td>
+                    <td>{{ sale.customer_name|default:'Walk-in' }}</td>
+                    <td>{{ sale.payment_method }}</td>
+                    <td>KES {{ sale.total_price|floatformat:2|intcomma }}</td>
+                    <td>KES {{ sale.amount_paid|floatformat:2|intcomma }}</td>
+                    <td>KES {{ sale.balance|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if sale.status == 'Paid' %}
+                            <span class="badge bg-success">{{ sale.status }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ sale.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ sale.date|date:"M d, Y H:i" }}</td>
+                    <td><a href="{% url 'inventory:sale_receipt' sale.pk %}" class="btn btn-sm btn-outline-light">Receipt</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center text-light">No sales found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

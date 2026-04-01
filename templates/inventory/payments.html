@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payments{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-white fw-bold">Payments</h2>
+</div>
+
+<div class="glass-card p-3 mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label for="payment_method" class="form-label text-white">Payment Method</label>
+            <select id="payment_method" name="payment_method" class="form-select">
+                <option value="">All</option>
+                <option value="Cash" {% if request.GET.payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+                <option value="M-Pesa" {% if request.GET.payment_method == 'M-Pesa' %}selected{% endif %}>M-Pesa</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="status" class="form-label text-white">Status</label>
+            <select id="status" name="status" class="form-select">
+                <option value="">All</option>
+                <option value="Paid" {% if request.GET.status == 'Paid' %}selected{% endif %}>Paid</option>
+                <option value="Pending" {% if request.GET.status == 'Pending' %}selected{% endif %}>Pending</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+        </div>
+        <div class="col-md-2">
+            <a href="{% url 'inventory:payments' %}" class="btn btn-secondary w-100">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="glass-card p-3">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover text-white align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Product</th>
+                    <th>Customer</th>
+                    <th>Payment Method</th>
+                    <th>Amount Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.product.name }}</td>
+                    <td>{{ payment.customer_name|default:'Walk-in' }}</td>
+                    <td>{{ payment.payment_method }}</td>
+                    <td>KES {{ payment.amount_paid|floatformat:0|intcomma }}</td>
+                    <td>KES {{ payment.balance|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if payment.status == 'Paid' %}
+                            <span class="badge bg-success">{{ payment.status }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ payment.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ payment.date|date:'M d, Y H:i' }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-light">No payments found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}M-Pesa Payment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="glass-card p-4 rounded-4 mb-4">
+            <h3 class="text-white mb-4">M-Pesa Payment</h3>
+            {% if error %}
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+            {% endif %}
+            <form method="POST" action="{% url 'inventory:mpesa_payment' %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label text-white">Phone Number</label>
+                    <input type="text" name="phone" class="form-control" placeholder="2547XXXXXXXX" value="{{ phone|default:'' }}" required>
+                </div>
+                <button type="submit" class="btn" style="background: #34B233; color: white;">Pay with M-Pesa</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

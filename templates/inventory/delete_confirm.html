@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Deletion{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="glass-card border-danger text-center shadow-lg">
+            <div class="mb-4">
+                <i class="bi bi-exclamation-octagon text-danger display-1"></i>
+            </div>
+            <h2 class="text-white fw-bold mb-3">Are you sure?</h2>
+            <p class="text-light opacity-75 mb-4">
+                You are about to delete <strong>{{ object }}</strong>. This action cannot be undone and may affect
+                related records.
+            </p>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <button type="submit" class="btn btn-danger btn-lg px-5 shadow">Yes, Delete Permanently</button>
+                    <a href="javascript:history.back()" class="btn btn-outline-light btn-lg px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

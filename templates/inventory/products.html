@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Products Inventory{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-white fw-bold"><i class="bi bi-box-seam"></i> Products List</h2>
+    <div class="d-flex">
+        <form action="{% url 'inventory:search' %}" method="get" class="d-flex me-3">
+            <input type="hidden" name="type" value="products">
+            <input type="text" name="q" class="form-control me-2" placeholder="Search products..." value="{{ request.GET.q|default:'' }}">
+            <button type="submit" class="btn btn-outline-light"><i class="bi bi-search"></i></button>
+        </form>
+        <a href="{% url 'inventory:product_create' %}" class="btn btn-primary shadow"><i class="bi bi-plus-lg"></i> Add New Product</a>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table text-white table-borderless glass-table">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                            style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                        {% else %}
+                        <div
+                            style="width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-image opacity-50"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><span class="fw-bold">{{ product.name }}</span></td>
+                    <td><span class="badge bg-secondary">{{ product.category.name }}</span></td>
+                    <td><span class="text-success fw-bold">KES {{ product.price|floatformat:0|intcomma }}</span></td>
+                    <td>
+                        {% if product.quantity < 10 %} <span class="text-danger fw-bold"><i
+                                class="bi bi-exclamation-triangle"></i> {{ product.quantity }}</span>
+                            {% else %}
+                            {{ product.quantity }}
+                            {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'inventory:product_detail' product.pk %}" class="btn btn-sm btn-outline-success me-1" title="View Details"><i class="bi bi-eye"></i></a>
+                        <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-outline-light me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-light opacity-75">No products found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

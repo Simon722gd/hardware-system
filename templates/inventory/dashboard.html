@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Data for JS (Hidden Script Tags) -->
+<script id="cat-labels" type="application/json">{{ cat_labels|safe }}</script>
+<script id="cat-data" type="application/json">{{ cat_data|safe }}</script>
+<script id="sales-labels" type="application/json">{{ sales_labels|safe }}</script>
+<script id="sales-data" type="application/json">{{ sales_data|safe }}</script>
+
+<div class="row g-4 mb-5">
+    <!-- Total Categories Card -->
+    <div class="col-md-3">
+        <a href="{% url 'inventory:category_list' %}" class="text-decoration-none dashboard-card-link">
+            <div class="stat-card card-blue h-100 p-4 shadow-sm rounded-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="text-white opacity-75">Total Categories</h5>
+                        <h2 class="text-white fw-bold display-4 mb-0">{{ total_categories }}</h2>
+                    </div>
+                    <i class="bi bi-tags dashboard-icon text-white"></i>
+                </div>
+                <span class="text-white opacity-75 text-decoration-none small mt-3 d-inline-block">View All <i class="bi bi-arrow-right"></i></span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Total Products Card -->
+    <div class="col-md-3">
+        <a href="{% url 'inventory:products' %}" class="text-decoration-none dashboard-card-link">
+            <div class="stat-card card-black h-100 p-4 shadow-sm rounded-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="text-white opacity-75">Total Products</h5>
+                        <h2 class="text-white fw-bold display-4 mb-0">{{ total_products }}</h2>
+                    </div>
+                    <i class="bi bi-box-seam dashboard-icon text-white"></i>
+                </div>
+                <span class="text-white opacity-75 text-decoration-none small mt-3 d-inline-block">Manage Stock <i class="bi bi-arrow-right"></i></span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Total Sales Card -->
+    <div class="col-md-3">
+        <a href="{% url 'inventory:sale_list' %}" class="text-decoration-none dashboard-card-link">
+            <div class="stat-card card-green h-100 p-4 shadow-sm rounded-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="text-white opacity-75">Total Sales</h5>
+                        <h2 class="text-white fw-bold display-4 mb-0">{{ total_sales }}</h2>
+                    </div>
+                    <i class="bi bi-cart-check dashboard-icon text-white"></i>
+                </div>
+                <span class="text-white opacity-75 text-decoration-none small mt-3 d-inline-block">View History <i class="bi bi-arrow-right"></i></span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Low Stock Card -->
+    <div class="col-md-3">
+        <a href="{% url 'inventory:low_stock' %}" class="text-decoration-none dashboard-card-link">
+            <div class="stat-card card-red h-100 p-4 shadow-sm rounded-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="text-white opacity-75">Low Stock</h5>
+                        <h2 class="text-white fw-bold display-4 mb-0">{{ low_stock_items }}</h2>
+                    </div>
+                    <i class="bi bi-exclamation-triangle dashboard-icon text-white"></i>
+                </div>
+                <span class="text-white opacity-75 text-decoration-none small mt-3 d-inline-block">Restock Now <i class="bi bi-arrow-right"></i></span>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 pt-4">
+    <!-- Charts Section -->
+    <div class="col-md-6 mb-4">
+        <div class="glass-card shadow-lg p-4 rounded-4">
+            <h4 class="text-white mb-4"><i class="bi bi-bar-chart"></i> Products per Category</h4>
+            <div style="height: 300px; position: relative;">
+                <canvas id="productsPerCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="glass-card shadow-lg p-4 rounded-4">
+            <h4 class="text-white mb-4"><i class="bi bi-graph-up"></i> Sales Over Time</h4>
+            <div style="height: 300px; position: relative;">
+                <canvas id="salesOverTimeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 mb-5">
+    <!-- Recent Activity Section -->
+    <div class="col-md-12">
+        <div class="glass-card shadow-lg p-4 rounded-4">
+            <h4 class="text-white mb-4"><i class="bi bi-clock-history"></i> Recent Activity (Sales)</h4>
+            <div class="table-responsive">
+                <table class="table text-white table-borderless glass-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Total Price</th>
+                            <th>Date</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in recent_activity %}
+                        <tr>
+                            <td>{{ sale.product.name }}</td>
+                            <td>{{ sale.quantity }}</td>
+                            <td>KES {{ sale.total_price|floatformat:0|intcomma }}</td>
+                            <td>{{ sale.date|date:"M d, Y H:i" }}</td>
+                            <td>{{ sale.notes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-light">No recent activity.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Products per Category Bar Chart
+        const catLabels = JSON.parse(document.getElementById('cat-labels').textContent || '[]');
+        const catData = JSON.parse(document.getElementById('cat-data').textContent || '[]');
+        const productsCtx = document.getElementById('productsPerCategoryChart').getContext('2d');
+
+        new Chart(productsCtx, {
+            type: 'bar',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    label: 'Products',
+                    data: catData,
+                    backgroundColor: 'rgba(34, 211, 238, 0.6)',
+                    borderColor: '#22D3EE',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#cbd5e1' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#cbd5e1' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // Sales Over Time Line Chart
+        const salesLabels = JSON.parse(document.getElementById('sales-labels').textContent || '[]');
+        const salesData = JSON.parse(document.getElementById('sales-data').textContent || '[]');
+        const salesCtx = document.getElementById('salesOverTimeChart').getContext('2d');
+
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: salesLabels,
+                datasets: [{
+                    label: 'Revenue (KES)',
+                    data: salesData,
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    borderColor: '#10B981',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#cbd5e1' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#cbd5e1' },
+                        grid: { display: false }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    });
+</script>
+{% endblock %}

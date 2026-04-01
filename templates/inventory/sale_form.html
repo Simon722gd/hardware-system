@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="glass-card shadow-lg p-4 rounded-4 mb-4">
+            <h3 class="text-white mb-4">{{ title }}</h3>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="payment_action" id="payment_action" value="">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.product.id_for_label }}" class="form-label text-white">Product</label>
+                        {{ form.product }}
+                        {% if form.product.errors %}
+                            <div class="text-danger">{{ form.product.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label text-white">Quantity</label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                            <div class="text-danger">{{ form.quantity.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.customer_name.id_for_label }}" class="form-label text-white">Customer Name</label>
+                        {{ form.customer_name }}
+                        {% if form.customer_name.errors %}
+                            <div class="text-danger">{{ form.customer_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-12 mb-3 d-none" id="mpesaPhoneGroup">
+                        <div class="mpesa-card p-3 rounded-3">
+                            <label for="{{ form.phone_number.id_for_label }}" class="form-label text-white fw-bold">Customer Phone Number</label>
+                            {{ form.phone_number }}
+                            {% if form.phone_number.errors %}
+                                <div class="text-danger">{{ form.phone_number.errors }}</div>
+                            {% endif %}
+                            <div class="form-text text-white-50">Use 2547XXXXXXXX or 07XXXXXXXX. The system normalizes the number for sandbox STK push.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.payment_method.id_for_label }}" class="form-label text-white">Payment Method</label>
+                        {{ form.payment_method }}
+                        {% if form.payment_method.errors %}
+                            <div class="text-danger">{{ form.payment_method.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.amount_paid.id_for_label }}" class="form-label text-white">Amount Paid</label>
+                        {{ form.amount_paid }}
+                        {% if form.amount_paid.errors %}
+                            <div class="text-danger">{{ form.amount_paid.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-white fw-bold">Calculated Price (KES)</label>
+                    <input type="text" id="live_total" class="form-control" readonly placeholder="Total calculated live...">
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label text-white">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="text-danger">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+                <div id="mpesaAlert" class="alert d-none" role="alert"></div>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="button" id="sendMpesaRequest" class="btn btn-success d-none">
+                        <i class="bi bi-phone me-1"></i>Send Payment Request
+                    </button>
+                    <button type="submit" id="saveSaleButton" class="btn btn-primary">Save Sale</button>
+                    <a href="{% url 'inventory:sale_list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const productSelect = document.getElementById('id_product');
+        const quantityInput = document.getElementById('id_quantity');
+        const liveTotalField = document.getElementById('live_total');
+        const paymentMethodSelect = document.getElementById('id_payment_method');
+        const amountPaidInput = document.getElementById('id_amount_paid');
+        const mpesaPhoneGroup = document.getElementById('mpesaPhoneGroup');
+        const phoneInput = document.getElementById('id_phone_number');
+        const sendRequestButton = document.getElementById('sendMpesaRequest');
+        const saveSaleButton = document.getElementById('saveSaleButton');
+        const mpesaAlert = document.getElementById('mpesaAlert');
+        const paymentActionInput = document.getElementById('payment_action');
+        const form = document.querySelector('form');
+
+        const productPrices = JSON.parse('{{ product_prices_json|escapejs|default:"{}" }}');
+
+        function formatCurrency(value) {
+            return value.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function parseCurrency(value) {
+            return parseFloat(value.toString().replace(/,/g, '')) || 0;
+        }
+
+        function normalizePhone(phone) {
+            const value = phone.trim().replace(/\s+/g, '').replace('+', '');
+            if (/^07\d{8}$/.test(value)) {
+                return '254' + value.slice(1);
+            }
+            if (/^2547\d{8}$/.test(value)) {
+                return value;
+            }
+            return null;
+        }
+
+        function calculate(updateAmountPaid = false) {
+            const productId = productSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            if (productId && productPrices[productId]) {
+                const price = productPrices[productId];
+                const total = price * quantity;
+                liveTotalField.value = formatCurrency(total);
+
+                if (updateAmountPaid && paymentMethodSelect.value === 'M-Pesa') {
+                    amountPaidInput.value = total.toFixed(2);
+                }
+
+                return total;
+            }
+
+            liveTotalField.value = 'Will be calculated on submit.';
+            return 0;
+        }
+
+        function setMpesaMode(enabled) {
+            if (enabled) {
+                mpesaPhoneGroup.classList.remove('d-none');
+                sendRequestButton.classList.remove('d-none');
+                saveSaleButton.classList.add('d-none');
+                amountPaidInput.readOnly = true;
+                amountPaidInput.classList.add('bg-secondary', 'text-white');
+                amountPaidInput.value = calculate(true).toFixed(2);
+                phoneInput.setAttribute('required', 'required');
+            } else {
+                mpesaPhoneGroup.classList.add('d-none');
+                sendRequestButton.classList.add('d-none');
+                saveSaleButton.classList.remove('d-none');
+                amountPaidInput.readOnly = false;
+                amountPaidInput.classList.remove('bg-secondary', 'text-white');
+                phoneInput.removeAttribute('required');
+                paymentActionInput.value = '';
+                mpesaAlert.classList.add('d-none');
+                mpesaAlert.textContent = '';
+            }
+        }
+
+        function showMpesaMessage(message, type = 'info') {
+            mpesaAlert.className = `alert alert-${type} mpesa-alert ${type === 'success' ? 'mpesa-success' : ''}`;
+            mpesaAlert.textContent = message;
+            mpesaAlert.classList.remove('d-none');
+        }
+
+        function validateMpesaPhone() {
+            return normalizePhone(phoneInput.value) !== null;
+        }
+
+        productSelect.addEventListener('change', function() {
+            calculate(paymentMethodSelect.value === 'M-Pesa');
+        });
+
+        quantityInput.addEventListener('input', function() {
+            calculate(paymentMethodSelect.value === 'M-Pesa');
+        });
+
+        paymentMethodSelect.addEventListener('change', function() {
+            setMpesaMode(this.value === 'M-Pesa');
+            calculate(this.value === 'M-Pesa');
+        });
+
+        setMpesaMode(paymentMethodSelect.value === 'M-Pesa');
+        calculate();
+
+        sendRequestButton.addEventListener('click', function() {
+            const normalizedPhone = normalizePhone(phoneInput.value);
+            if (!normalizedPhone) {
+                showMpesaMessage('Phone number is required and must be 2547XXXXXXXX or 07XXXXXXXX.', 'danger');
+                phoneInput.focus();
+                return;
+            }
+
+            const total = parseCurrency(liveTotalField.value);
+            if (!total || total <= 0) {
+                showMpesaMessage('Select a product and enter quantity to start the payment.', 'danger');
+                return;
+            }
+
+            phoneInput.value = normalizedPhone;
+            amountPaidInput.value = total.toFixed(2);
+            paymentActionInput.value = 'stk_push';
+            showMpesaMessage('Payment request sent to customer’s phone. Enter PIN to complete payment.', 'info');
+            sendRequestButton.disabled = true;
+
+            setTimeout(function() {
+                showMpesaMessage('Processing payment request... please wait.', 'success');
+                form.submit();
+            }, 500);
+        });
+    });
+</script>
+{% endblock %}

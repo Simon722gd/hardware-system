@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-white fw-bold mb-3">Search Results</h2>
+    
+    <!-- Search Form -->
+    <div class="glass-card p-4 rounded-4 mb-4">
+        <form method="get" action="{% url 'inventory:search' %}" class="d-flex gap-2">
+            <div class="flex-grow-1">
+                <input type="text" name="q" value="{{ query }}" class="form-control form-control-lg" 
+                       placeholder="Search products, categories, suppliers..." required>
+            </div>
+            <select name="type" class="form-select form-select-lg">
+                <option value="all" {% if search_type == 'all' %}selected{% endif %}>All</option>
+                <option value="products" {% if search_type == 'products' %}selected{% endif %}>Products</option>
+                <option value="categories" {% if search_type == 'categories' %}selected{% endif %}>Categories</option>
+                <option value="suppliers" {% if search_type == 'suppliers' %}selected{% endif %}>Suppliers</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-lg">Search</button>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+    <!-- Results Summary -->
+    <div class="row gap-3 mb-4">
+        {% if search_type in 'all,products' and products %}
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h5 class="text-white">{{ products|length }}</h5>
+                <p class="text-light opacity-75">Products Found</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if search_type in 'all,categories' and categories %}
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h5 class="text-white">{{ categories|length }}</h5>
+                <p class="text-light opacity-75">Categories Found</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if search_type in 'all,suppliers' and suppliers %}
+        <div class="col-md-3">
+            <div class="glass-card p-3 text-center">
+                <h5 class="text-white">{{ suppliers|length }}</h5>
+                <p class="text-light opacity-75">Suppliers Found</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Products Results -->
+    {% if search_type in 'all,products' %}
+        <div class="mb-5">
+            <h4 class="text-white mb-3"><i class="bi bi-box-seam"></i> Products</h4>
+            {% if products %}
+            <div class="glass-card">
+                <div class="table-responsive">
+                    <table class="table text-white table-borderless glass-table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                                    {% else %}
+                                        <div style="width: 50px; height: 50px; background: #ccc; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-image text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td>KES {{ product.price|floatformat:0|intcomma }}</td>
+                                <td>{{ product.quantity }}</td>
+                                <td>
+                                    <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-outline-light">Edit</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-card p-4 text-center">
+                <p class="text-light opacity-75">No products found matching "{{ query }}"</p>
+            </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Categories Results -->
+    {% if search_type in 'all,categories' %}
+        <div class="mb-5">
+            <h4 class="text-white mb-3"><i class="bi bi-tags"></i> Categories</h4>
+            {% if categories %}
+            <div class="row">
+                {% for category in categories %}
+                <div class="col-md-4 mb-3">
+                    <div class="glass-card p-4 h-100">
+                        <h5 class="text-white mb-2">{{ category.name }}</h5>
+                        <p class="text-light opacity-75 small mb-0">{{ category.products.count }} products</p>
+                        <a href="{% url 'inventory:category_update' category.pk %}" class="btn btn-sm btn-outline-light mt-3">Manage</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="glass-card p-4 text-center">
+                <p class="text-light opacity-75">No categories found matching "{{ query }}"</p>
+            </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Suppliers Results -->
+    {% if search_type in 'all,suppliers' %}
+        <div class="mb-5">
+            <h4 class="text-white mb-3"><i class="bi bi-truck"></i> Suppliers</h4>
+            {% if suppliers %}
+            <div class="row">
+                {% for supplier in suppliers %}
+                <div class="col-md-4 mb-3">
+                    <div class="glass-card p-4 h-100">
+                        <h5 class="text-white mb-2">{{ supplier.name }}</h5>
+                        <p class="text-light opacity-75 small mb-2">
+                            <i class="bi bi-envelope"></i> {{ supplier.email|default:"-" }}
+                        </p>
+                        <p class="text-light opacity-75 small mb-0">
+                            <i class="bi bi-telephone"></i> {{ supplier.phone|default:"-" }}
+                        </p>
+                        <a href="{% url 'inventory:supplier_update' supplier.pk %}" class="btn btn-sm btn-outline-light mt-3">Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="glass-card p-4 text-center">
+                <p class="text-light opacity-75">No suppliers found matching "{{ query }}"</p>
+            </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if not products and not categories and not suppliers %}
+    <div class="glass-card p-5 text-center">
+        <i class="bi bi-search text-light opacity-50" style="font-size: 3rem;"></i>
+        <h4 class="text-white mt-3">No Results Found</h4>
+        <p class="text-light opacity-75">Try searching with different keywords</p>
+    </div>
+    {% endif %}
+
+{% else %}
+    <div class="glass-card p-5 text-center">
+        <i class="bi bi-search text-light opacity-50" style="font-size: 3rem;"></i>
+        <h4 class="text-white mt-3">Search the Inventory</h4>
+        <p class="text-light opacity-75">Use the search box above to find products, categories, or suppliers</p>
+    </div>
+{% endif %}
+{% endblock %}
